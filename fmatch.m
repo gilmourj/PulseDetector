@@ -1,6 +1,8 @@
-function [outputArg1,outputArg2] = fmatch(kps,img2)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+function [xCoords,yCoords] = fmatch(kps,img2)
+% Takes a matrix of keypoints and 
+for i=1:size(kps(:))
+    
+end
 
 end
 

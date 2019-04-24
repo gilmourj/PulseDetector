@@ -59,13 +59,17 @@ figure;
 imshow(framesTrimmed(:,:,1),[]);
 hold on;
 
-for i = 1:size(find(kps(:,:,1)))
+for i = 1:size(find(kps(:,:,1) > 0))
     plot(c1(i), r1(i), 'r+');
 end
 
 %% Match Features
 
 % get feature descriptors for first frame
+
+for i = 1:(size(r1) - 1)
+    
+end
 
 featDesc1 = kpfeat(frames(:,:,1),kps(:,:,1));
 
