@@ -17,39 +17,21 @@
 % Prep
 run ~/startup.m
 %% Read in Video
-vidReader = VideoReader('Headshot.mp4');
+vidReader = VideoReader('zoe_120fps.mp4');
 numFrames = 0;
 
 %%
 % preallocate space to store frames
-frames = zeros(1920,1080,600);
+frames = zeros(1080,1920,200);
 
-% while hasFrame(vidReader)
-%    numFrames = numFrames + 1;
-%    frame = imrotate(readFrame(vidReader),-90);
-%    frame = rgb2gray(frame);
-%    frames(:,:,numFrames) = frame;
-% end
-%%
-% https://www.mathworks.com/matlabcentral/answers/322563-how-to-resize-video
-vidobj = vision.VideoFileReader('zoe_120fps.mp4');
-viewer = vision.DeployableVideoPlayer;
-for i = 1:600 
-          A = step(vidobj);
-          viewframe = imresize(A,0.5);
-          step(viewer, viewframe);       
+for i = 1:200
+   numFrames = numFrames + 1;
+   %frame = imrotate(readFrame(vidReader),-90);
+   frame = readFrame(vidReader);
+   frame = rgb2gray(frame);
+   frames(:,:,i) = frame;
 end
-release(vidobj);
-release(viewer);
-%%
 
-
-% for i=1:600
-%    numFrames = numFrames + 1;
-%    frame = imrotate(readFrame(vidReader),-90);
-%    frame = rgb2gray(frame);
-%    frames(:,:,numFrames) = frame;
-% end
 
 frameHeight = size(frames,1);
 frameWidth = size(frames,2);
@@ -58,14 +40,15 @@ frameWidth = size(frames,2);
 
 % preallocate space for new smaller frames
 %trimmedFrames = zeros(311,227,numFrames);
-framesTrimmed = zeros(311,227,numFrames);
+trimmedHeight = 646
+framesTrimmed = zeros(646,371,numFrames);
 
 for frame = 1:numFrames
     % get rid of extra space around face and store in new array
-    framesTrimmed(:,:,frame) = frames(484:794,225:451,frame);
+    framesTrimmed(:,:,frame) = frames(255:900,780:1150,frame);
     
     % set area around eyes to NaN
-    framesTrimmed(54:140,:,frame) = NaN;
+    framesTrimmed(170:320,:,frame) = NaN;
 end
 
 %% Detect Features

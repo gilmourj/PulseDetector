@@ -17,18 +17,19 @@
 % Prep
 run ~/startup.m
 %% Read in Video
-vidReader = VideoReader('Headshot.mp4');
+vidReader = VideoReader('zoe_120fps.mp4');
 numFrames = 0;
 
 %%
 % preallocate space to store frames
-frames = zeros(1280,720,200);
+frames = zeros(1080,1920,200);
 
-while hasFrame(vidReader)
+for i = 1:200
    numFrames = numFrames + 1;
-   frame = imrotate(readFrame(vidReader),-90);
+   %frame = imrotate(readFrame(vidReader),-90);
+   frame = readFrame(vidReader);
    frame = rgb2gray(frame);
-   frames(:,:,numFrames) = frame;
+   frames(:,:,i) = frame;
 end
 
 
@@ -38,20 +39,29 @@ frameWidth = size(frames,2);
 %% Process Video
 
 % preallocate space for new smaller frames
-%trimmedFrames = zeros(311,227,numFrames);
-framesTrimmed = zeros(311,227,numFrames);
+% trimmedHeight = 311;
+% trimmedWidth = 227;
+% eyeTop = 54;
+% eyeBottom = 140;
+
+trimmedHeight = 646;
+trimmedWidth = 371;
+eyeTop = 170;
+eyeBottom = 320;
+
+framesTrimmed = zeros(trimmedHeight,trimmedWidth,numFrames);
 
 for frame = 1:numFrames
     % get rid of extra space around face and store in new array
-    framesTrimmed(:,:,frame) = frames(484:794,225:451,frame);
+    framesTrimmed(:,:,frame) = frames(255:900,780:1150,frame);
     
     % set area around eyes to NaN
-    framesTrimmed(54:140,:,frame) = NaN;
+    framesTrimmed(eyeTop:eyeBottom,:,frame) = NaN;
 end
 
 %% Detect Features
 % preallocate space for feature detections
-kps = zeros(311,227,numFrames);
+kps = zeros(trimmedHeight,trimmedWidth,numFrames);
 
 for frame = 1:numFrames
     kps(:,:,frame) = kpdet1(framesTrimmed(:,:,frame));
@@ -84,7 +94,7 @@ end
 featDesc = zeros(numKeypoints,64,numFrames);
 
 % get feature descriptors for first frame
-featDesc(:,:,1) = kpfeat(frames(:,:,1),kps(:,:,1));
+featDesc(:,:,1) = kpfeat(framesTrimmed(:,:,1),kps(:,:,1));
 maxVertDisp = 10;
 maxHorizDisp = 10;
 
@@ -123,7 +133,7 @@ for k = 2:numFrames
 
             % save best patch to feature descriptors matrix
             p = framesTrimmed((ulCornerRow+r):(ulCornerRow+r+7), ...
-                (ulCornerCol+c):(ulCornerCol+c+7));
+                (ulCornerCol+c):(ulCornerCol+c+7),k);
             featDesc(i,:,k) = p(:);
         else
             rowLocations(i,k) = NaN;
@@ -137,11 +147,12 @@ end
 %%
 % Visualization of movement
 figure;
-for i=1:numKeypoints
-    plot(colLocations(i,:),rowLocations(i,:));
-    hold on;
-end
+% for i=1:numKeypoints
+%     plot(colLocations(i,:),rowLocations(i,:));
+%     hold on;
+% end
 
+plot(colLocations(83,:),rowLocations(83,:));
 %%
 figure;
 for i=1:numKeypoints
