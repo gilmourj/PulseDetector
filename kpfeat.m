@@ -50,10 +50,11 @@ function [descriptors] = kpfeat(img, keypoints)
             col_upper_left:col_lower_right);
 
         % normalize bias and gain of patch
-        bias_norm_patch = patch - mean(patch(:));
-        norm_patch = bias_norm_patch ./ std(bias_norm_patch(:));
+        %bias_norm_patch = patch - mean(patch(:));
+        %norm_patch = bias_norm_patch ./ std(bias_norm_patch(:));
         
         % store into array
-        descriptors(k,:) = norm_patch(:);
+        %descriptors(k,:) = norm_patch(:);
+        descriptors(k,:) = patch(:);
     end  
 end
