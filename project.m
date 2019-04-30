@@ -13,12 +13,16 @@
 % 7. Some complicated math to figure out how much head moves overall??
 % 8. Use this info to calculate pulse rate??
 
+%%
+% Prep
+run ~/startup.m
 %% Read in Video
 vidReader = VideoReader('Headshot.mp4');
 numFrames = 0;
 
+%%
 % preallocate space to store frames
-frames = zeros(1280,720,199);
+frames = zeros(1280,720,200);
 
 while hasFrame(vidReader)
    numFrames = numFrames + 1;
@@ -26,6 +30,7 @@ while hasFrame(vidReader)
    frame = rgb2gray(frame);
    frames(:,:,numFrames) = frame;
 end
+
 
 frameHeight = size(frames,1);
 frameWidth = size(frames,2);
@@ -63,10 +68,11 @@ colLocations = zeros(numKeypoints,numFrames);
 
 rowLocations(:,1) = r1;
 colLocations(:,1) = c1;
-
+%%
 figure;
 imshow(framesTrimmed(:,:,1),[]);
 hold on;
+
 
 for i = 1:size(find(kps(:,:,1) > 0))
     plot(c1(i), r1(i), 'r+');
@@ -92,10 +98,18 @@ for k = 2:numFrames
 
         for row = 1:maxVertDisp
            for col = 1:maxHorizDisp
-               patch = frames((ulCornerRow+row):(ulCornerRow+row+7), ...
-                (ulCornerCol+col):(ulCornerCol+col+7),k);
-               patchVec = patch(:);
-               SSDs(row,col) = sum((featDesc(i,:,k-1) - patchVec').^2);
+               rowStart = ulCornerRow+row;
+               rowEnd = ulCornerRow+row+7;
+               colStart = ulCornerCol+col;
+               colEnd = ulCornerCol+col+7;
+               if(rowEnd <= size(framesTrimmed,1) && colEnd <= size(framesTrimmed,2))
+                   patch = framesTrimmed(rowStart:rowEnd, ...
+                   colStart:colEnd,k);
+                   patchVec = patch(:);
+                   SSDs(row,col) = sum((featDesc(i,:,k-1) - patchVec').^2);
+               else
+                   SSDs(row,col) = NaN;
+               end
            end
         end
 
@@ -108,7 +122,7 @@ for k = 2:numFrames
             colLocations(i,k) = ulCornerCol+c(1)+3;
 
             % save best patch to feature descriptors matrix
-            p = frames((ulCornerRow+r):(ulCornerRow+r+7), ...
+            p = framesTrimmed((ulCornerRow+r):(ulCornerRow+r+7), ...
                 (ulCornerCol+c):(ulCornerCol+c+7));
             featDesc(i,:,k) = p(:);
         else
@@ -122,18 +136,45 @@ end
 
 %%
 % Visualization of movement
-for i=1:139
+figure;
+for i=1:numKeypoints
     plot(colLocations(i,:),rowLocations(i,:));
     hold on;
 end
 
 %%
 figure;
-for i=1:139
+for i=1:numKeypoints
     plot(rowLocations(i,:));
     hold on;
 end
 
+%%
+figure;
+imshow(framesTrimmed(:,:,1),[]);
+hold on;
+
+for i = 1:size(find(kps(:,:,1) > 0))
+    plot(c1(i), r1(i), 'r+');
+end
+hold on;
+
+for i=1:numKeypoints
+    plot(rowLocations(i,:));
+    hold on;
+end
+
+%%
+
+% discard the least stable keypoints
+pos2 = zeros(size(colLocations,1),size(colLocations,2) - 1);
+pos2(:,:) = colLocations(:,2:end);
+amtMoved = abs(colLocations(:,1:end - 1) - pos2);
+maxAmtMoved = max(amtMoved,[],2);
+
+maxAmtMovedFiltered = maxAmtMoved(~isnan(maxAmtMoved));
+
+medianMaxAmtMoved = median(maxAmtMovedFiltered);
 
 %% Citations
 % Krishnamurthy, R. Video Processing in Matlab. MathWorks, 2019,
