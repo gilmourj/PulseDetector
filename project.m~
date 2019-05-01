@@ -22,9 +22,9 @@ numFrames = 0;
 
 %%
 % preallocate space to store frames
-frames = zeros(1080,1920,200);
+frames = zeros(1080,1920,400);
 
-for i = 1:200
+for i = 1:400
    numFrames = numFrames + 1;
    %frame = imrotate(readFrame(vidReader),-90);
    frame = readFrame(vidReader);
@@ -39,21 +39,29 @@ frameWidth = size(frames,2);
 %% Process Video
 
 % preallocate space for new smaller frames
-%trimmedFrames = zeros(311,227,numFrames);
-trimmedHeight = 646
-framesTrimmed = zeros(646,371,numFrames);
+% trimmedHeight = 311;
+% trimmedWidth = 227;
+% eyeTop = 54;
+% eyeBottom = 140;
+
+trimmedHeight = 646;
+trimmedWidth = 371;
+eyeTop = 170;
+eyeBottom = 320;
+
+framesTrimmed = zeros(trimmedHeight,trimmedWidth,numFrames);
 
 for frame = 1:numFrames
     % get rid of extra space around face and store in new array
     framesTrimmed(:,:,frame) = frames(255:900,780:1150,frame);
     
     % set area around eyes to NaN
-    framesTrimmed(170:320,:,frame) = NaN;
+    framesTrimmed(eyeTop:eyeBottom,:,frame) = NaN;
 end
 
 %% Detect Features
 % preallocate space for feature detections
-kps = zeros(311,227,numFrames);
+kps = zeros(trimmedHeight,trimmedWidth,numFrames);
 
 for frame = 1:numFrames
     kps(:,:,frame) = kpdet1(framesTrimmed(:,:,frame));
@@ -86,7 +94,7 @@ end
 featDesc = zeros(numKeypoints,64,numFrames);
 
 % get feature descriptors for first frame
-featDesc(:,:,1) = kpfeat(frames(:,:,1),kps(:,:,1));
+featDesc(:,:,1) = kpfeat(framesTrimmed(:,:,1),kps(:,:,1));
 maxVertDisp = 10;
 maxHorizDisp = 10;
 
@@ -125,7 +133,7 @@ for k = 2:numFrames
 
             % save best patch to feature descriptors matrix
             p = framesTrimmed((ulCornerRow+r):(ulCornerRow+r+7), ...
-                (ulCornerCol+c):(ulCornerCol+c+7));
+                (ulCornerCol+c):(ulCornerCol+c+7),k);
             featDesc(i,:,k) = p(:);
         else
             rowLocations(i,k) = NaN;
@@ -144,10 +152,14 @@ for i=1:numKeypoints
     hold on;
 end
 
+%plot(colLocations(83,:),rowLocations(83,:));
 %%
 figure;
 for i=1:numKeypoints
     plot(rowLocations(i,:));
+    title('Vertical Movement of Keypoints Across Frames (Z)');
+    xlabel('Frame');
+    ylabel('Row Location of Feature');
     hold on;
 end
 
@@ -176,8 +188,19 @@ maxAmtMoved = max(amtMoved,[],2);
 
 maxAmtMovedFiltered = maxAmtMoved(~isnan(maxAmtMoved));
 
-medianMaxAmtMoved = median(maxAmtMovedFiltered);
+modeMaxAmtMoved = mode(maxAmtMovedFiltered);
 
+% only keep the keypoints whose max amount moved is less than the mode
+indToKeep = find(maxAmtMovedFiltered < modeMaxAmtMoved);
+colLocFilt = colLocations(indToKeep,:);
+rowLocFilt = rowLocations(indToKeep,:);
+
+%%
+
+% filter out frequencies that are too high or too low
+y = bandpass( , [0.75,5])
+[b,a] = butter(5,[0.75,5]);
+filt = filter(b,a,colLocFilt(1,:));
 %% Citations
 % Krishnamurthy, R. Video Processing in Matlab. MathWorks, 2019,
 % https://www.mathworks.com/videos/video-processing-in-matlab-68745.html

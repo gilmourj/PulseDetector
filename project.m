@@ -22,16 +22,15 @@ numFrames = 0;
 
 %%
 % preallocate space to store frames
-frames = zeros(1080,1920,200);
+frames = zeros(1080,1920,400);
 
-for i = 1:200
+for i = 1:400
    numFrames = numFrames + 1;
    %frame = imrotate(readFrame(vidReader),-90);
    frame = readFrame(vidReader);
    frame = rgb2gray(frame);
    frames(:,:,i) = frame;
 end
-
 
 frameHeight = size(frames,1);
 frameWidth = size(frames,2);
@@ -147,16 +146,19 @@ end
 %%
 % Visualization of movement
 figure;
-% for i=1:numKeypoints
-%     plot(colLocations(i,:),rowLocations(i,:));
-%     hold on;
-% end
+for i=1:numKeypoints
+    plot(colLocations(i,:),rowLocations(i,:));
+    hold on;
+end
 
-plot(colLocations(83,:),rowLocations(83,:));
+%plot(colLocations(83,:),rowLocations(83,:));
 %%
 figure;
 for i=1:numKeypoints
     plot(rowLocations(i,:));
+    title('Vertical Movement of Keypoints Across Frames (Z)');
+    xlabel('Frame');
+    ylabel('Row Location of Feature');
     hold on;
 end
 
@@ -185,8 +187,20 @@ maxAmtMoved = max(amtMoved,[],2);
 
 maxAmtMovedFiltered = maxAmtMoved(~isnan(maxAmtMoved));
 
-medianMaxAmtMoved = median(maxAmtMovedFiltered);
+modeMaxAmtMoved = mode(maxAmtMovedFiltered);
 
+% only keep the keypoints whose max amount moved is less than the mode
+indToKeep = find(maxAmtMovedFiltered < modeMaxAmtMoved);
+colLocFilt = colLocations(indToKeep,:);
+rowLocFilt = rowLocations(indToKeep,:);
+
+%%
+
+% filter out frequencies that are too high or too low
+y = bandpass(colLocFilt(1,:),[0.75,5]);
+
+% [b,a] = butter(5,[0.75,5]);
+% filt = filter(b,a,colLocFilt(1,:));
 %% Citations
 % Krishnamurthy, R. Video Processing in Matlab. MathWorks, 2019,
 % https://www.mathworks.com/videos/video-processing-in-matlab-68745.html
