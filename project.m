@@ -17,24 +17,30 @@
 % Prep
 run ~/startup.m
 %% Read in Video
-vidReader = VideoReader('zoe_120fps.mp4');
-numFrames = 400;
+vidReader1 = VideoReader('zoe_120fps.mp4');
+numFrames = vidReader1.NumberOfFrames;
 
+vidReader = VideoReader('zoe_120fps.mp4');
 %%
 % preallocate space to store frames
 
-trimmedHeight = 646;
+trimmedHeight = 500;
 trimmedWidth = 371;
 eyeTop = 170;
 eyeBottom = 320;
+
+trimmedTop = 255;
+trimmedBottom = 755;
+trimmedLeft = 800;
+trimmedRight = 1150;
 
 %% Detect Features
 % preallocate space for feature detections
 frame1 = readFrame(vidReader);
 frame1 = rgb2gray(frame1);
-trimmedFrame1 = frame(255:900,780:1150);
+trimmedFrame1 = frame1(trimmedTop:trimmedBottom,trimmedLeft:trimmedRight);
 trimmedFrame1(eyeTop:eyeBottom,:) = NaN;
-kps = kpdet1(frame1);
+kps = kpdet1(trimmedFrame1);
 
 % find indices of keypoints
 [r1, c1] = find(kps > 0);
@@ -52,17 +58,18 @@ colLocations(:,1) = c1;
 featDesc = zeros(numKeypoints,64,numFrames, 'uint8');
 
 % get feature descriptors for first frame
-featDesc(:,:,1) = kpfeat(frame1,kps);
+featDesc(:,:,1) = kpfeat(trimmedFrame1,kps);
 maxVertDisp = 10;
 maxHorizDisp = 10;
 
 % create matrix for SSD values
 SSDs = zeros(10,10);
 
-for k = 2:400
+k = 2;
+while(hasFrame(vidReader))
    frame = readFrame(vidReader);
    frame = rgb2gray(frame);
-   trimmedFrame = frame(255:900,780:1150);
+   trimmedFrame = frame(trimmedTop:trimmedBottom,trimmedLeft:trimmedRight);
    trimmedFrame(eyeTop:eyeBottom,:) = NaN;
    
      for j = 1:size(featDesc,1)
@@ -103,7 +110,8 @@ for k = 2:400
             colLocations(j,k) = NaN;
             featDesc(j,:,k) = NaN;
         end
-    end
+     end
+    k=k+1;
 end
 
 
@@ -134,15 +142,16 @@ figure;
 imshow(trimmedFrame,[]);
 hold on;
 
-for i = 1:size(find(kps > 0))
+for i = 1:size(find(kps > 0),1)
     plot(c1(i), r1(i), 'r+');
-end
-hold on;
-
-for i=1:numKeypoints
-    plot(rowLocations(i,:));
     hold on;
 end
+%%
+% 
+% for i=1:numKeypoints
+%     plot(rowLocations(i,:));
+%     hold on;
+% end
 
 %%
 
@@ -168,8 +177,48 @@ rowLocFilt = rowLocations(indToKeep,:);
 
 % [b,a] = butter(5,[0.75,5]);
 % filt = filter(b,a,colLocFilt(1,:));
+
+Fs = 120;
+T = 1/Fs;
+L = numFrames;
+t = (0:L-1)*T;
+figure;
+plot(1000*t(1:numFrames),rowLocFilt(8,1:numFrames))
+title('Signal')
+xlabel('t (milliseconds)')
+ylabel('X(t)')
+
+%%
+
+% using 30 per Jerod's calculations, but we wonder if it may be 60
+lowerBound = floor(L*(.75/120));
+upperBound = ceil(L*(5/120));
+
+Y = fft(rowLocFilt(1,:));
+Y(1:lowerBound) = 0+0i; %Y(1:lowerBound) - real(Y(1:lowerBound));
+Y(upperBound:end) = 0+0i; %Y(upperBound:end) - real(Y(upperBound:end));
+
+P2 = abs(Y/L);
+P1 = P2(1:L/2+1);
+P1(2:end-1) = 2*P1(2:end-1);
+f = Fs*(0:(L/2))/L;
+figure;
+plot(f,P1) 
+title('Single-Sided Amplitude Spectrum of X(t)')
+xlabel('f (Hz)')
+ylabel('|P1(f)|')
+
+%fourier(abs(fourier) < 0.75) = fourier(abs(fourier) < 0.75) - abs(fourier(abs(fourier) < 0.75));
+%fourier(abs(fourier) > 5) = fourier(abs(fourier) > 5) - abs(fourier(abs(fourier) > 5));
+filteredSignal = ifft(Y);
+%%
+
+figure;
+plot(abs(filteredSignal));
+
 %% Citations
 % Krishnamurthy, R. Video Processing in Matlab. MathWorks, 2019,
 % https://www.mathworks.com/videos/video-processing-in-matlab-68745.html
+% FFT help: https://www.mathworks.com/help/matlab/ref/fft.html
 
 

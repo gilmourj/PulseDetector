@@ -28,7 +28,7 @@ function detectionImage = kpdet1(I)
     detOverTrace = (detA./trA);
     
     %Creating and thresholding the detection image
-    thresholdValue = max(detOverTrace(:))/80;
+    thresholdValue = max(detOverTrace(:))/160;
     IMaxima = maxima(detOverTrace);
     detectionImage = detOverTrace;
     detectionImage(~IMaxima) = 0;
