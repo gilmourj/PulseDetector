@@ -190,13 +190,12 @@ ylabel('X(t)')
 
 %%
 
-% using 30 per Jerod's calculations, but we wonder if it may be 60
 lowerBound = floor(L*(.75/120));
 upperBound = ceil(L*(5/120));
 
 Y = fft(rowLocFilt(1,:));
-Y(1:lowerBound) = 0+0i; %Y(1:lowerBound) - real(Y(1:lowerBound));
-Y(upperBound:end) = 0+0i; %Y(upperBound:end) - real(Y(upperBound:end));
+Y(1:lowerBound) = 0+0i;
+Y(upperBound:end) = 0+0i;
 
 P2 = abs(Y/L);
 P1 = P2(1:L/2+1);
@@ -208,13 +207,24 @@ title('Single-Sided Amplitude Spectrum of X(t)')
 xlabel('f (Hz)')
 ylabel('|P1(f)|')
 
-%fourier(abs(fourier) < 0.75) = fourier(abs(fourier) < 0.75) - abs(fourier(abs(fourier) < 0.75));
-%fourier(abs(fourier) > 5) = fourier(abs(fourier) > 5) - abs(fourier(abs(fourier) > 5));
 filteredSignal = ifft(Y);
 %%
-
 figure;
-plot(abs(filteredSignal));
+plot(real(filteredSignal));
+
+%%
+covMat = cov(rowLocFilt);
+meanPos = mean(rowLocFilt, 2);
+
+[eigVecs,eigVals] = eigs(covMat);
+
+posSignals = zeros(6,size(rowLocFilt,1));
+posTimeSeries = rowLocFilt';
+for i = 1:6
+    for j = 1:size(rowLocFilt,1)
+        posSignals(i,j) = dot(rowLocFilt(j,:)',eigVecs(:,i));
+    end
+end
 
 %% Citations
 % Krishnamurthy, R. Video Processing in Matlab. MathWorks, 2019,
