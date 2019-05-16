@@ -239,13 +239,24 @@ end
 % Compute periodicity of each signal
 
 % Allocate space to store periodicity values
-periodicities = zeros(1,size(posSignals,1));
+periodicities = zeros(size(posSignals,1),1);
 
+% Calculate periodicity
 for i = 1:size(posSignals,1)
-    absFourierTrans = abs(fft(posSignals(i,:)));
-    maxFreq = max(absFourierTrans);
+    sigFourier = fft(posSignals(i,:));
+    absFourierTrans = abs(sigFourier);
+    [m,maxInd] = max(absFourierTrans);
     
+    freq = Fs * (maxInd/numFrames);
+    harmonic = 2 * freq;
+    harmInd = floor(L*(harmonic/120));
+    periodicities(i,1) = (absFourierTrans(maxInd) + absFourierTrans(harmInd)) / sum(absFourierTrans,2);
 end
+
+[maxPer, maxPerInd] = max(periodicities);
+[maxF,maxFreqInd] = max(abs(fft(posSignals(maxPerInd,:))));
+maxFreq = Fs * (maxFreqInd/numFrames);
+pulseRate = 60 / maxFreq;
 
 %% Citations
 % Krishnamurthy, R. Video Processing in Matlab. MathWorks, 2019,
